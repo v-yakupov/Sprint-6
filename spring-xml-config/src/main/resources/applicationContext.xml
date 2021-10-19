@@ -3,8 +3,8 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
     <beans>
-        <bean class="ru.sber.services.FirstService"/>
+        <bean id="firstService" class="ru.sber.services.FirstService"/>
         <bean id="secondService" class="ru.sber.services.SecondService"/>
-        <bean id="thirdService" class="ru.sber.anotherservices.ThirdService"/>
+        <bean id="thirdService" class="ru.sber.services.ThirdService"/>
     </beans>
 </beans>

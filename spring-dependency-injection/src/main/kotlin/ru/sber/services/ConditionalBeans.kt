@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component
 
 class ProdProfileCondition : Condition {
     override fun matches(context: ConditionContext, metadata: AnnotatedTypeMetadata): Boolean {
-        return context.environment.activeProfiles.contains("qa")
+        return context.environment.activeProfiles.contains("prod")
     }
 }
 

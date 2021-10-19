@@ -8,6 +8,6 @@ import ru.sber.services.CombinedBean
 @Configuration
 @ComponentScan("ru.sber.services")
 class ServicesConfig {
-    @Bean
+    @Bean(initMethod = "customInit")
     fun combinedBean() = CombinedBean()
 }
