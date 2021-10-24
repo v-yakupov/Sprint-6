@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<form method="post">
+    <p><label>New name: <input th:value="${record.name}" type="text" id="name" name="name"/></label></p>
+    <p><label>New address: <input th:value="${record.address}" type="text" id="address" name="address"/></label></p>
+    <p><input type="submit" value="Edit" /></p>
+</form>
+</body>
+</html>
