@@ -6,6 +6,12 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.boot.web.client.RestTemplateBuilder
+import org.springframework.boot.web.server.LocalServerPort
+import org.springframework.core.ParameterizedTypeReference
+import org.springframework.http.HttpEntity
+import org.springframework.http.HttpMethod
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.annotation.DirtiesContext
 import org.springframework.test.web.servlet.MockMvc
@@ -13,22 +19,38 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
 import org.springframework.test.web.servlet.setup.DefaultMockMvcBuilder
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
+import org.springframework.web.client.RestTemplate
 import org.springframework.web.context.WebApplicationContext
 import ru.sber.sbermvc.filter.AuthFilter
 import ru.sber.sbermvc.filter.LogFilter
 import ru.sber.sbermvc.service.Record
 import javax.servlet.http.Cookie
+import kotlin.test.assertEquals
 
-@SpringBootTest
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class SbermvcApplicationTests {
-    lateinit var mockMvc: MockMvc
+    @Autowired
+    lateinit var restTemplateBuilder: RestTemplateBuilder
 
     @Autowired
     lateinit var webApplicationContext: WebApplicationContext
 
+    @LocalServerPort
+    var port: Int = 65535
+
+    lateinit var mockMvc: MockMvc
+
+    lateinit var restTemplate: RestTemplate
+
     @BeforeEach
     fun setup() {
+        restTemplate  = restTemplateBuilder
+            .rootUri("http://localhost:${port}/api")
+            .defaultHeader("Cookie", "auth=0;") // Shortcut to
+            .defaultHeader("Content-Type", "application/json")
+            .build()
+
         mockMvc = MockMvcBuilders
             .webAppContextSetup(webApplicationContext)
             .addFilters<DefaultMockMvcBuilder>(LogFilter(), AuthFilter())
@@ -48,6 +70,58 @@ class SbermvcApplicationTests {
                 .param("name", "Jean Pierre Karasique")
                 .param("address", "Paris")
         )
+    }
+
+    @Test
+    fun `should list one record via resttemplate`() {
+        val record = restTemplate.getForEntity("/0/view", Record::class.java)
+        assertEquals(HttpStatus.OK, record.statusCode)
+        assertEquals("Spurdo Spärde", record.body?.name)
+        assertEquals("Benin", record.body?.address)
+    }
+
+    @Test
+    fun `should list multiple records via resttemplate`() {
+        val records = restTemplate.exchange("/list", HttpMethod.GET, null, object : ParameterizedTypeReference<Map<String, Record>>(){})
+        println(records.body)
+        assertEquals(records.statusCode, HttpStatus.OK)
+        assertEquals("Spurdo Spärde", records.body?.get("0")?.name)
+        assertEquals("Benin", records.body?.get("0")?.address)
+        assertEquals("Jean Pierre Karasique", records.body?.get("1")?.name)
+        assertEquals("Paris", records.body?.get("1")?.address)
+    }
+
+    @Test
+    fun `should update record via resttemplate`() {
+        val recordPost = restTemplate.postForEntity("/1/edit", HttpEntity<Record>(Record("Pepe", "Washington")), Record::class.java)
+        assertEquals(HttpStatus.OK, recordPost.statusCode)
+
+        val recordGet = restTemplate.getForEntity("/1/view", Record::class.java)
+        assertEquals(HttpStatus.OK, recordGet.statusCode)
+        assertEquals("Pepe", recordGet.body?.name)
+        assertEquals("Washington", recordGet.body?.address)
+    }
+
+    @Test
+    fun `should delete record via resttemplate`() {
+        val recordDelete = restTemplate.getForEntity("/1/delete", Record::class.java)
+        assertEquals(HttpStatus.OK, recordDelete.statusCode)
+
+        val recordGet = restTemplate.getForEntity("/1/view", Record::class.java)
+        assertEquals(HttpStatus.OK, recordGet.statusCode)
+        assertEquals(null, recordGet.body?.name)
+        assertEquals(null, recordGet.body?.address)
+    }
+
+    @Test
+    fun `should add record via resttemplate`() {
+        val recordPost = restTemplate.postForEntity("/add", HttpEntity<Record>(Record("Pepe", "Washington")), Record::class.java)
+        assertEquals(HttpStatus.OK, recordPost.statusCode)
+
+        val recordGet = restTemplate.getForEntity("/2/view", Record::class.java)
+        assertEquals(HttpStatus.OK, recordGet.statusCode)
+        assertEquals("Pepe", recordGet.body?.name)
+        assertEquals("Washington", recordGet.body?.address)
     }
 
     @Test
